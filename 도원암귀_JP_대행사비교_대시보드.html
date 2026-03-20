@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>도원암귀 JP 대행사 전략 비교 대시보드</title>
+<style>
+  :root {
+    --m: #1D9E75;
+    --m-light: #E1F5EE;
+    --m-dark: #0F6E56;
+    --c: #7F77DD;
+    --c-light: #EEEDFE;
+    --c-dark: #3C3489;
+    --both: #EF9F27;
+    --both-light: #FAEEDA;
+    --both-dark: #633806;
+    --bg: #f8f8f6;
+    --white: #ffffff;
+    --border: #e0e0d8;
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --warn: #A32D2D;
+    --warn-bg: #FCEBEB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
+
+  /* Header */
+  .header { background: var(--white); border-bottom: 1px solid var(--border); padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; position: sticky; top: 0; z-index: 100; }
+  .header-title { font-size: 17px; font-weight: 600; }
+  .header-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .legend { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .leg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .leg-sq { width: 12px; height: 12px; border-radius: 2px; }
+
+  /* Tabs */
+  .tabs { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 32px; display: flex; gap: 0; overflow-x: auto; }
+  .tab { padding: 12px 16px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); white-space: nowrap; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); border-bottom-color: #333; font-weight: 500; }
+
+  /* Content */
+  .content { max-width: 1100px; margin: 0 auto; padding: 24px 24px 48px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+  /* Cards */
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .card-m { border-top: 3px solid var(--m); }
+  .card-c { border-top: 3px solid var(--c); }
+  .card-both { border-top: 3px solid var(--both); }
+  .card-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+
+  /* Metric cards */
+  .kpi-card { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+  .kpi-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-val { font-size: 24px; font-weight: 600; line-height: 1.2; }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* Agency label */
+  .agency-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 8px; }
+  .ab-m { background: var(--m-light); color: var(--m-dark); }
+  .ab-c { background: var(--c-light); color: var(--c-dark); }
+  .ab-both { background: var(--both-light); color: var(--both-dark); }
+
+  /* Table */
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: #f3f3ef; padding: 9px 12px; text-align: left; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody td { padding: 10px 12px; border-bottom: 1px solid #f0f0ec; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafaf8; }
+  .total-row { background: #f8f7f0 !important; font-weight: 600; }
+  .total-row td { border-top: 2px solid var(--border); }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+  .tag-m { background: var(--m-light); color: var(--m-dark); }
+  .tag-c { background: var(--c-light); color: var(--c-dark); }
+  .tag-ok { background: #EAF3DE; color: #27500A; }
+  .tag-warn { background: var(--warn-bg); color: var(--warn); }
+  .tag-mid { background: var(--both-light); color: var(--both-dark); }
+  .tag-est { background: #f0f0ec; color: #555; font-style: italic; }
+
+  /* Bar */
+  .bar-wrap { background: #eeede8; border-radius: 4px; height: 7px; margin: 6px 0; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .bm { background: var(--m); }
+  .bc { background: var(--c); }
+  .bb { background: var(--both); }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* Alert */
+  .alert { padding: 12px 16px; border-radius: 8px; font-size: 12px; line-height: 1.6; margin-top: 16px; }
+  .alert-warn { background: var(--warn-bg); border-left: 3px solid var(--warn); color: #6b1a1a; }
+  .alert-info { background: var(--m-light); border-left: 3px solid var(--m); color: var(--m-dark); }
+  .alert-note { background: #f3f3ef; border-left: 3px solid #bbb; color: #555; }
+
+  /* Section title */
+  .sec-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .sec-desc { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  .block-title { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 24px 0 12px; }
+
+  /* Scenario tabs */
+  .scen-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .scen-tab { padding: 6px 14px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); background: var(--white); color: var(--muted); }
+  .scen-tab.active { background: var(--c-light); border-color: var(--c); color: var(--c-dark); font-weight: 500; }
+
+  /* Responsive */
+  @media (max-width: 680px) {
+    .grid2, .grid3, .grid4 { grid-template-columns: 1fr; }
+    .content { padding: 16px 16px 40px; }
+    .header { padding: 16px; }
+    .tabs { padding: 0 16px; }
+  }
+
+  /* Highlight text */
+  .hl-m { color: var(--m-dark); font-weight: 600; }
+  .hl-c { color: var(--c-dark); font-weight: 600; }
+  .hl-b { font-weight: 600; }
+
+  /* Footnote */
+  .footnote { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.7; }
+  .footnote span { margin-right: 4px; font-weight: 600; color: #999; }
+
+  /* Vertical divider in grid */
+  .vline { border-left: 1px solid var(--border); padding-left: 20px; }
+
+  /* Big number comparison */
+  .compare-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin: 12px 0; }
+  .compare-vs { font-size: 11px; color: var(--muted); text-align: center; padding: 0 8px; }
+
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; }
+
+  /* Budget bar viz */
+  .budget-viz { display: flex; height: 28px; border-radius: 6px; overflow: hidden; margin: 10px 0; font-size: 11px; color: white; }
+  .bv-seg { display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; padding: 0 6px; font-weight: 600; }
+  .bv-m { background: var(--m); }
+  .bv-c { background: var(--c); }
+  .bv-cb { background: var(--c-dark); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">🎮 도원암귀 Crimson Inferno | JP 론칭 캠페인</div>
+    <div class="header-sub">대행사 전략 · 예산 · KPI 비교 대시보드 &nbsp;|&nbsp; 기준일: 2026.02&nbsp; 환율: 100¥ = 950₩</div>
+  </div>
+  <div class="legend">
+    <div class="leg"><div class="leg-sq" style="background:var(--m)"></div>모비데이즈</div>
+    <div class="leg"><div class="leg-sq" style="background:var(--c)"></div>카르타 (UA)</div>
+    <div class="leg"><div class="leg-sq" style="background:var(--c-dark)"></div>카르타 (브랜딩)</div>
+    <div class="leg"><div class="leg-sq" style="background:var(--both)"></div>합산</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="summary">💰 예산·KPI 종합</div>
+  <div class="tab" data-tab="prereg">📋 사전예약 상세</div>
+  <div class="tab" data-tab="install">📲 인스톨 상세</div>
+  <div class="tab" data-tab="carta">🔍 카르타 UA 시나리오</div>
+  <div class="tab" data-tab="breakdown">📊 채널별 예산</div>
+  <div class="tab" data-tab="notes">📝 주석·가정</div>
+</div>
+
+<div class="content">
+
+<!-- ===== 예산·KPI 종합 ===== -->
+<div class="section active" id="summary">
+  <div class="sec-title">캠페인 예산 및 KPI 종합</div>
+  <div class="sec-desc">모비데이즈 + 카르타 합산 기준 | 카르타 UA는 2안(1억원) 기준</div>
+
+  <div class="grid4" style="margin-bottom:20px">
+    <div class="kpi-card" style="border-top:3px solid var(--both)">
+      <div class="kpi-label">전체 캠페인 총예산</div>
+      <div class="kpi-val" style="color:var(--both-dark)">₩55.3억</div>
+      <div class="kpi-sub">모비+카르타(UA+브랜딩) 합산</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">합산 사전예약 목표</div>
+      <div class="kpi-val">222,205건</div>
+      <div class="kpi-sub">모비 198,025 + 카르타 24,180</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">합산 인스톨 목표</div>
+      <div class="kpi-val">281,531건</div>
+      <div class="kpi-sub">모비 250,000 + 카르타 31,531</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">합산 CPR (사전예약)</div>
+      <div class="kpi-val">₩4,289</div>
+      <div class="kpi-sub">사전예약 총예산 / 총 건수</div>
+    </div>
+  </div>
+
+  <!-- Budget visualization -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">예산 구성 시각화</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">전체 ₩55.3억 기준 비율</div>
+    <div class="budget-viz">
+      <div class="bv-seg bv-m" style="width:16.3%">모비 사전예약</div>
+      <div class="bv-seg bv-m" style="width:29%;opacity:0.75">모비 론칭</div>
+      <div class="bv-seg bv-c" style="width:0.96%"></div>
+      <div class="bv-seg bv-cb" style="width:52.9%;font-size:10px">카르타 브랜딩 (¥307.6M)</div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:6px;flex-wrap:wrap;">
+      <div style="font-size:11px;color:var(--muted)"><span style="color:var(--m);font-weight:600">■</span> 모비 사전예약: ₩9억 (16%)</div>
+      <div style="font-size:11px;color:var(--muted)"><span style="color:var(--m);font-weight:600;opacity:0.7">■</span> 모비 론칭: ~₩16억 (29%)</div>
+      <div style="font-size:11px;color:var(--muted)"><span style="color:var(--c);font-weight:600">■</span> 카르타 UA 2안: ₩1.04억 (1.9%)</div>
+      <div style="font-size:11px;color:var(--muted)"><span style="color:var(--c-dark);font-weight:600">■</span> 카르타 브랜딩: ₩29.2억 (52.8%)</div>
+    </div>
+  </div>
+
+  <!-- Main comparison table -->
+  <div class="card">
+    <div class="card-title">대행사별 예산 · KPI 핵심 비교표</div>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:130px">구분</th>
+          <th style="min-width:200px">모비데이즈</th>
+          <th style="min-width:200px">카르타</th>
+          <th style="min-width:160px">합산 (Combined)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:#fafaf7">
+          <td colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 12px;text-transform:uppercase;letter-spacing:0.5px">사전예약 (Pre-Registration)</td>
+        </tr>
+        <tr>
+          <td>사전예약 예산</td>
+          <td><span class="hl-m">₩900,000,000</span><br><span style="font-size:11px;color:var(--muted)">원 (KRW)</span></td>
+          <td><span class="hl-c">₩53,000,000</span><br><span style="font-size:11px;color:var(--muted)">UA 2안 기준 (KRW)</span></td>
+          <td class="hl-b">₩953,000,000</td>
+        </tr>
+        <tr>
+          <td>사전예약 볼륨</td>
+          <td><span class="hl-m">198,025건</span></td>
+          <td><span class="hl-c">24,180건</span><br><span style="font-size:11px;color:var(--muted)">스토어 등록 기준 (DL×0.75)</span></td>
+          <td class="hl-b">222,205건</td>
+        </tr>
+        <tr>
+          <td>CPR (사전예약 단가)</td>
+          <td><span class="hl-m">₩4,239/건</span></td>
+          <td><span class="hl-c">₩2,192/건</span></td>
+          <td class="hl-b">₩4,289/건</td>
+        </tr>
+        <tr style="background:#fafaf7">
+          <td colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 12px;text-transform:uppercase;letter-spacing:0.5px">론칭 / 인스톨 (Launch Install)</td>
+        </tr>
+        <tr>
+          <td>론칭 예산</td>
+          <td>
+            <span class="hl-m">~₩1,600,000,000</span><br>
+            <span class="tag tag-est">추정</span>
+            <span style="font-size:11px;color:var(--muted)"> 미디어믹스 기준</span>
+          </td>
+          <td><span class="hl-c">₩51,000,000</span><br><span style="font-size:11px;color:var(--muted)">UA 2안 기준 (KRW)</span></td>
+          <td class="hl-b">~₩1,651,000,000</td>
+        </tr>
+        <tr>
+          <td>인스톨 볼륨</td>
+          <td>
+            <span class="hl-m">~250,000건</span><br>
+            <span class="tag tag-est">추정</span>
+            <span style="font-size:11px;color:var(--muted)"> 론칭 NU 25만 목표</span>
+          </td>
+          <td><span class="hl-c">31,531건</span></td>
+          <td class="hl-b">~281,531건</td>
+        </tr>
+        <tr>
+          <td>CPI (인스톨 단가)</td>
+          <td>
+            <span class="hl-m">~₩6,400/건</span><br>
+            <span class="tag tag-est">추정</span>
+          </td>
+          <td><span class="hl-c">₩1,617/건</span></td>
+          <td class="hl-b">~₩5,864/건</td>
+        </tr>
+        <tr style="background:#fafaf7">
+          <td colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 12px;text-transform:uppercase;letter-spacing:0.5px">전체 예산 (Total Budget)</td>
+        </tr>
+        <tr>
+          <td>UA 총예산</td>
+          <td><span class="hl-m">~₩2,500,000,000</span><br><span style="font-size:11px;color:var(--muted)">사전예약 ₩9억 + 론칭 ~₩16억</span></td>
+          <td><span class="hl-c">₩104,000,000</span><br><span style="font-size:11px;color:var(--muted)">UA 2안 (사전예약+출시 2주)</span></td>
+          <td class="hl-b">~₩2,604,000,000</td>
+        </tr>
+        <tr>
+          <td>브랜딩 예산</td>
+          <td style="color:var(--muted)">– (별도 브랜딩 없음)</td>
+          <td>
+            <span class="hl-c">₩2,922,675,000</span><br>
+            <span style="font-size:11px;color:var(--muted)">¥307,650,000 × 9.5 KRW/JPY</span>
+          </td>
+          <td class="hl-b">₩2,922,675,000</td>
+        </tr>
+        <tr class="total-row">
+          <td>🔢 대행사별 총예산</td>
+          <td style="color:var(--m-dark);font-size:16px">~₩2,500,000,000</td>
+          <td style="color:var(--c-dark);font-size:16px">~₩3,026,675,000</td>
+          <td style="color:var(--both-dark);font-size:16px">~₩5,526,675,000</td>
+        </tr>
+        <tr style="background:#f8f6f0">
+          <td style="font-size:12px;color:var(--muted)">대행사 수수료 포함 시</td>
+          <td style="font-size:12px;color:var(--muted)">+9% (Net 기준, ₩225M 추가)</td>
+          <td style="font-size:12px;color:var(--muted)">협의 필요</td>
+          <td style="font-size:12px;color:var(--muted)">₩225M+ 추가</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="alert alert-note" style="margin-top:16px">
+      ※ 카르타 수치는 UA SIM 2안(1억원 시나리오) 기준입니다. 카르타 1안(5천만원), 추가제안(Google+Meta 1억) 상세는 '카르타 UA 시나리오' 탭 참조.<br>
+      ※ 모비데이즈 론칭 예산 및 인스톨 볼륨은 공식 마일스톤 미디어믹스 이미지 기반 추정치입니다. 별도 확정 필요.
+    </div>
+  </div>
+</div>
+
+<!-- ===== 사전예약 상세 ===== -->
+<div class="section" id="prereg">
+  <div class="sec-title">사전예약 상세 비교</div>
+  <div class="sec-desc">2026.07.02 사전예약 개시 → 2026.09.09 선론칭 직전 피크 | 9월 10일 일본 선론칭</div>
+
+  <div class="grid2" style="margin-bottom:16px">
+    <div class="card card-m">
+      <div class="agency-badge ab-m">모비데이즈</div>
+      <div class="card-title">사전예약 KPI 요약</div>
+      <div class="grid2" style="gap:10px;margin-bottom:16px">
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">총 예산</div>
+          <div class="kpi-val" style="font-size:18px;color:var(--m-dark)">₩900,000,000</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">사전예약 목표</div>
+          <div class="kpi-val" style="font-size:18px">198,025건</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">CPR (건당 단가)</div>
+          <div class="kpi-val" style="font-size:18px;color:var(--m-dark)">₩4,239</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">캠페인 기간</div>
+          <div class="kpi-val" style="font-size:13px">7/2 ~ 9/9</div>
+          <div class="kpi-sub">총 70일 (마일스톤 기준)</div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px">월별 예산 및 CPR 계획</div>
+      <table style="width:100%;font-size:12px">
+        <thead><tr>
+          <th style="background:#f0f0ec;padding:6px 8px;text-align:left;font-size:11px">기간</th>
+          <th style="background:#f0f0ec;padding:6px 8px;text-align:right;font-size:11px">예산</th>
+          <th style="background:#f0f0ec;padding:6px 8px;text-align:right;font-size:11px">CPR</th>
+          <th style="background:#f0f0ec;padding:6px 8px;text-align:right;font-size:11px">목표</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">7월 초반 (단가검증)</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩55,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--m-dark)">₩4,583</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">12,000건</td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">7~8월 (UA 확장)</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩95,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--m-dark)">₩4,524</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">21,000건</td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">8월 (집중 확산)</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩330,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--m-dark)">₩4,521</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">73,000건</td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">9월 초 (막바지 집중)</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩420,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--m-dark)">₩4,565</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">92,000건</td></tr>
+          <tr style="background:#f0faf6;font-weight:600"><td style="padding:6px 8px">Total</td><td style="padding:6px 8px;text-align:right;color:var(--m-dark)">₩900,000,000</td><td style="padding:6px 8px;text-align:right;color:var(--m-dark)">₩4,239</td><td style="padding:6px 8px;text-align:right">198,000건</td></tr>
+        </tbody>
+      </table>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">※ 원안은 3~6월 기준, 공식 마일스톤(7월 CBT)에 맞춰 7~9월로 시프트 적용</div>
+    </div>
+
+    <div class="card card-c">
+      <div class="agency-badge ab-c">카르타 (UA 2안 기준)</div>
+      <div class="card-title">사전예약 KPI 요약</div>
+      <div class="grid2" style="gap:10px;margin-bottom:16px">
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">UA 예산 (사전등록)</div>
+          <div class="kpi-val" style="font-size:18px;color:var(--c-dark)">₩53,000,000</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">사전등록 목표</div>
+          <div class="kpi-val" style="font-size:18px">24,180건</div>
+          <div class="kpi-sub">스토어 등록 기준</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">CPR (건당 단가)</div>
+          <div class="kpi-val" style="font-size:18px;color:var(--c-dark)">₩2,192</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">브랜딩 예산 (별도)</div>
+          <div class="kpi-val" style="font-size:13px">₩2,922,675,000</div>
+          <div class="kpi-sub">¥307,650,000 × 9.5</div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px">UA 매체별 사전예약 예산 (2안)</div>
+      <table style="width:100%;font-size:12px">
+        <thead><tr>
+          <th style="background:#f0f0ec;padding:6px 8px;text-align:left;font-size:11px">매체</th>
+          <th style="background:#f0f0ec;padding:6px 8px;text-align:right;font-size:11px">예산</th>
+          <th style="background:#f0f0ec;padding:6px 8px;text-align:right;font-size:11px">CPR</th>
+          <th style="background:#f0f0ec;padding:6px 8px;text-align:right;font-size:11px">등록건</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">X (Twitter)</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩25,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩2,388</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">10,463건</td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">TikTok</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩10,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩2,123</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">4,708건</td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">Zucks</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩6,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩2,166</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">2,769건</td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">Unicorn</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩8,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩1,875</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">4,269건</td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">LINE</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩2,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩2,031</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">984건</td></tr>
+          <tr><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec">Yahoo! Japan</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩2,000,000</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩2,028</td><td style="padding:6px 8px;border-bottom:1px solid #f0f0ec;text-align:right">986건</td></tr>
+          <tr style="background:#f0f0fb;font-weight:600"><td style="padding:6px 8px">Total</td><td style="padding:6px 8px;text-align:right;color:var(--c-dark)">₩53,000,000</td><td style="padding:6px 8px;text-align:right;color:var(--c-dark)">₩2,192</td><td style="padding:6px 8px;text-align:right">24,180건</td></tr>
+        </tbody>
+      </table>
+      <div class="alert alert-note" style="margin-top:10px;font-size:11px">스토어 내 Install 버튼 부재로 실제 CPR은 20~30% 상승 가능성 있음</div>
+    </div>
+  </div>
+
+  <!-- Combined summary -->
+  <div class="card card-both">
+    <div class="agency-badge ab-both">합산 (Combined)</div>
+    <div class="grid3">
+      <div>
+        <div class="kpi-label">합산 사전예약 예산</div>
+        <div style="font-size:20px;font-weight:600;color:var(--both-dark)">₩953,000,000</div>
+        <div style="font-size:11px;color:var(--muted)">₩900M + ₩53M</div>
+      </div>
+      <div>
+        <div class="kpi-label">합산 사전예약 볼륨</div>
+        <div style="font-size:20px;font-weight:600">222,205건</div>
+        <div style="font-size:11px;color:var(--muted)">198,025 + 24,180</div>
+      </div>
+      <div>
+        <div class="kpi-label">합산 CPR</div>
+        <div style="font-size:20px;font-weight:600;color:var(--both-dark)">₩4,289/건</div>
+        <div style="font-size:11px;color:var(--muted)">₩953M ÷ 222,205</div>
+      </div>
+    </div>
+    <div class="alert alert-info" style="margin-top:14px;font-size:12px">
+      카르타의 브랜딩 채널(X 운영 ¥100M = ₩950M 포함)이 사전예약 전환에 간접 기여하므로 실제 합산 CPR은 이보다 낮을 수 있습니다.
+    </div>
+  </div>
+</div>
+
+<!-- ===== 인스톨 상세 ===== -->
+<div class="section" id="install">
+  <div class="sec-title">인스톨(론칭) 상세 비교</div>
+  <div class="sec-desc">2026.09.10 일본 선론칭 ~ 이후 | 카르타 UA 2안 기준</div>
+
+  <div class="grid2" style="margin-bottom:16px">
+    <div class="card card-m">
+      <div class="agency-badge ab-m">모비데이즈</div>
+      <div class="card-title">론칭 인스톨 KPI</div>
+      <div class="grid2" style="gap:10px;margin-bottom:16px">
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">론칭 예산 (추정)</div>
+          <div class="kpi-val" style="font-size:18px;color:var(--m-dark)">~₩1,600,000,000</div>
+          <div class="kpi-sub" style="color:var(--warn)">★ 추정치 · 별도 확정 필요</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">인스톨 목표 (추정)</div>
+          <div class="kpi-val" style="font-size:18px">~250,000건</div>
+          <div class="kpi-sub">론칭 NU 25만 목표 기준</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">추정 CPI</div>
+          <div class="kpi-val" style="font-size:18px;color:var(--m-dark)">~₩6,400/건</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">주요 캠페인 유형</div>
+          <div class="kpi-val" style="font-size:12px">ACA·tROAS<br>AEO·VO·ROAS</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);">론칭 초기 13일: ACA·ACi·MAIA·AEO 집중<br>이후: tROAS·VO 전환으로 고가치 유저 비중 확대</div>
+    </div>
+
+    <div class="card card-c">
+      <div class="agency-badge ab-c">카르타 (UA 2안 기준)</div>
+      <div class="card-title">론칭 인스톨 KPI (출시 후 2주)</div>
+      <div class="grid2" style="gap:10px;margin-bottom:16px">
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">론칭 예산</div>
+          <div class="kpi-val" style="font-size:18px;color:var(--c-dark)">₩51,000,000</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">인스톨 목표</div>
+          <div class="kpi-val" style="font-size:18px">31,531건</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">CPI</div>
+          <div class="kpi-val" style="font-size:18px;color:var(--c-dark)">₩1,617/건</div>
+        </div>
+        <div class="kpi-card" style="border:none;background:#f8f8f6;padding:12px">
+          <div class="kpi-label">주요 매체</div>
+          <div class="kpi-val" style="font-size:12px">X·TikTok·Zucks<br>Unicorn·LINE</div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:8px">매체별 인스톨 예산 (2안)</div>
+      <table style="width:100%;font-size:12px">
+        <thead><tr>
+          <th style="background:#f0f0ec;padding:5px 8px;text-align:left;font-size:11px">매체</th>
+          <th style="background:#f0f0ec;padding:5px 8px;text-align:right;font-size:11px">예산</th>
+          <th style="background:#f0f0ec;padding:5px 8px;text-align:right;font-size:11px">CPI</th>
+          <th style="background:#f0f0ec;padding:5px 8px;text-align:right;font-size:11px">DL</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec">X (Twitter)</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩25,000,000</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩1,600</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">15,625건</td></tr>
+          <tr><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec">TikTok</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩13,000,000</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩1,541</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">8,442건</td></tr>
+          <tr><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec">Zucks</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩4,000,000</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩1,749</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">2,286건</td></tr>
+          <tr><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec">Unicorn</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩5,000,000</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩1,514</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">3,304건</td></tr>
+          <tr><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec">LINE</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">₩4,000,000</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right;color:var(--c-dark)">₩2,133</td><td style="padding:5px 8px;border-bottom:1px solid #f0f0ec;text-align:right">1,875건</td></tr>
+          <tr style="background:#f0f0fb;font-weight:600"><td style="padding:5px 8px">Total</td><td style="padding:5px 8px;text-align:right;color:var(--c-dark)">₩51,000,000</td><td style="padding:5px 8px;text-align:right;color:var(--c-dark)">₩1,617</td><td style="padding:5px 8px;text-align:right">31,531건</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card card-both">
+    <div class="agency-badge ab-both">합산 (Combined)</div>
+    <div class="grid3">
+      <div>
+        <div class="kpi-label">합산 론칭 예산</div>
+        <div style="font-size:20px;font-weight:600;color:var(--both-dark)">~₩1,651,000,000</div>
+        <div style="font-size:11px;color:var(--muted)">~₩1,600M + ₩51M</div>
+      </div>
+      <div>
+        <div class="kpi-label">합산 인스톨 목표</div>
+        <div style="font-size:20px;font-weight:600">~281,531건</div>
+        <div style="font-size:11px;color:var(--muted)">~250,000 + 31,531</div>
+      </div>
+      <div>
+        <div class="kpi-label">합산 추정 CPI</div>
+        <div style="font-size:20px;font-weight:600;color:var(--both-dark)">~₩5,864/건</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 카르타 UA 시나리오 ===== -->
+<div class="section" id="carta">
+  <div class="sec-title">카르타 UA 시나리오 비교</div>
+  <div class="sec-desc">카르타 UA SIM 기준 3가지 시나리오 | 브랜딩 예산(₩29.2억)은 별도 고정</div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">UA 시나리오 한눈에 비교</div>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>항목</th>
+          <th style="background:#eef5f0">1안 · ₩5,500만 총</th>
+          <th style="background:#eeedfb">2안 · ₩1억400만 총</th>
+          <th style="background:#fdf5ea">추가제안 · ₩1억 (Google+Meta)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:#fafaf7"><td colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:6px 12px">사전등록</td></tr>
+        <tr>
+          <td>예산</td>
+          <td style="background:#eef5f0">₩28,000,000</td>
+          <td style="background:#eeedfb;font-weight:600">₩53,000,000</td>
+          <td style="background:#fdf5ea">₩45,000,000</td>
+        </tr>
+        <tr>
+          <td>사전등록 볼륨</td>
+          <td style="background:#eef5f0">13,213건</td>
+          <td style="background:#eeedfb;font-weight:600">24,180건</td>
+          <td style="background:#fdf5ea">34,885건</td>
+        </tr>
+        <tr>
+          <td>CPR</td>
+          <td style="background:#eef5f0">₩2,119/건</td>
+          <td style="background:#eeedfb;font-weight:600">₩2,192/건</td>
+          <td style="background:#fdf5ea;font-weight:600;color:var(--both-dark)">₩1,290/건 ★최저</td>
+        </tr>
+        <tr>
+          <td>주요 매체</td>
+          <td style="background:#eef5f0;font-size:12px">X·TikTok·Zucks·Unicorn·LINE·Yahoo</td>
+          <td style="background:#eeedfb;font-size:12px">X·TikTok·Zucks·Unicorn·LINE·Yahoo</td>
+          <td style="background:#fdf5ea;font-size:12px">Google+Meta</td>
+        </tr>
+        <tr style="background:#fafaf7"><td colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:6px 12px">출시 후 (2주)</td></tr>
+        <tr>
+          <td>예산</td>
+          <td style="background:#eef5f0">₩27,000,000</td>
+          <td style="background:#eeedfb;font-weight:600">₩51,000,000</td>
+          <td style="background:#fdf5ea">₩55,000,000</td>
+        </tr>
+        <tr>
+          <td>인스톨 볼륨</td>
+          <td style="background:#eef5f0">16,300건</td>
+          <td style="background:#eeedfb;font-weight:600">31,531건</td>
+          <td style="background:#fdf5ea;font-weight:600;color:var(--both-dark)">66,034건 ★최대</td>
+        </tr>
+        <tr>
+          <td>CPI</td>
+          <td style="background:#eef5f0">₩1,656/건</td>
+          <td style="background:#eeedfb;font-weight:600">₩1,617/건</td>
+          <td style="background:#fdf5ea;font-weight:600;color:var(--both-dark)">₩833/건 ★최저</td>
+        </tr>
+        <tr style="background:#fafaf7"><td colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:6px 12px">종합</td></tr>
+        <tr>
+          <td>UA 총예산</td>
+          <td style="background:#eef5f0">₩55,000,000</td>
+          <td style="background:#eeedfb;font-weight:600">₩104,000,000</td>
+          <td style="background:#fdf5ea">₩100,000,000</td>
+        </tr>
+        <tr>
+          <td>브랜딩 예산 (공통)</td>
+          <td style="background:#eef5f0">₩2,922,675,000</td>
+          <td style="background:#eeedfb">₩2,922,675,000</td>
+          <td style="background:#fdf5ea">₩2,922,675,000</td>
+        </tr>
+        <tr class="total-row">
+          <td>카르타 총예산</td>
+          <td style="background:#e6f5ee;color:var(--m-dark)">₩2,977,675,000</td>
+          <td style="background:#e8e7fb;color:var(--c-dark);font-weight:700">₩3,026,675,000</td>
+          <td style="background:#fdf0d8;color:var(--both-dark)">₩3,022,675,000</td>
+        </tr>
+        <tr>
+          <td>추가제안과의 채널 중복 (vs 모비)</td>
+          <td style="background:#eef5f0;font-size:12px"><span class="tag tag-mid">X·TikTok 중복</span></td>
+          <td style="background:#eeedfb;font-size:12px"><span class="tag tag-mid">X·TikTok 중복</span></td>
+          <td style="background:#fdf5ea;font-size:12px"><span class="tag tag-warn">Google·Meta 강중복</span></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="alert alert-warn" style="margin-top:14px">
+      <strong>⚠️ 추가제안 (Google+Meta)</strong>은 모비데이즈와 동일 채널에서 동시 운영 시 입찰 경쟁 발생 위험이 가장 큽니다.<br>
+      <strong>2안 (X·TikTok·Zucks·Unicorn 등)</strong>은 모비데이즈 미운영 채널 위주로 구성되어 중복 최소화에 유리합니다.
+    </div>
+  </div>
+
+  <!-- Branding breakdown -->
+  <div class="card card-c">
+    <div class="agency-badge ab-c">카르타 브랜딩 예산 상세</div>
+    <div class="card-title">브랜딩 항목별 예산 (¥→₩ 환산)</div>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>카테고리</th>
+          <th>항목</th>
+          <th style="text-align:right">JPY (¥)</th>
+          <th style="text-align:right">KRW (₩)</th>
+          <th>비고</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>SNS 운영</td><td>X + TikTok (4·5·6월분)</td><td style="text-align:right">¥100,000,000</td><td style="text-align:right;color:var(--c-dark);font-weight:600">₩950,000,000</td><td>SNS 유료 운영·컨텐츠</td></tr>
+        <tr><td rowspan="7">예약형 광고</td><td>PORTO In-stream</td><td style="text-align:right">¥20,000,000</td><td style="text-align:right">₩190,000,000</td><td>TVer·FOD</td></tr>
+        <tr><td>PORTO DOOH</td><td style="text-align:right">¥10,000,000</td><td style="text-align:right">₩95,000,000</td><td></td></tr>
+        <tr><td>Abema Instream</td><td style="text-align:right">¥15,000,000</td><td style="text-align:right">₩142,500,000</td><td>청소년·MF1층</td></tr>
+        <tr><td>Pixiv Banner</td><td style="text-align:right">¥5,000,000</td><td style="text-align:right">₩47,500,000</td><td>오타쿠 팬층</td></tr>
+        <tr><td>X 스포트라이트 테이크오버</td><td style="text-align:right">¥27,000,000</td><td style="text-align:right">₩256,500,000</td><td></td></tr>
+        <tr><td>X 이머시브 테이크오버</td><td style="text-align:right">¥5,000,000</td><td style="text-align:right">₩47,500,000</td><td></td></tr>
+        <tr><td>LINE Manga + 소설가가되자</td><td style="text-align:right">¥4,000,000</td><td style="text-align:right">₩38,000,000</td><td></td></tr>
+        <tr><td rowspan="7">게임 매체</td><td>Kamigame</td><td style="text-align:right">¥3,000,000</td><td style="text-align:right">₩28,500,000</td><td></td></tr>
+        <tr><td>GameWith</td><td style="text-align:right">¥3,800,000</td><td style="text-align:right">₩36,100,000</td><td></td></tr>
+        <tr><td>Game8</td><td style="text-align:right">¥3,600,000</td><td style="text-align:right">₩34,200,000</td><td></td></tr>
+        <tr><td>4Gamer</td><td style="text-align:right">¥2,700,000</td><td style="text-align:right">₩25,650,000</td><td></td></tr>
+        <tr><td>Famitsu</td><td style="text-align:right">¥2,800,000</td><td style="text-align:right">₩26,600,000</td><td></td></tr>
+        <tr><td>Altema + 전격온라인 등</td><td style="text-align:right">¥2,500,000</td><td style="text-align:right">₩23,750,000</td><td></td></tr>
+        <tr><td>Wiki</td><td>GameWith 공략위키</td><td style="text-align:right">¥5,250,000</td><td style="text-align:right">₩49,875,000</td><td></td></tr>
+        <tr><td rowspan="3">게임 영상</td><td>Mirrativ</td><td style="text-align:right">–</td><td style="text-align:right">출시 후 협의</td><td></td></tr>
+        <tr><td>Twitch First Impression</td><td style="text-align:right">¥3,000,000</td><td style="text-align:right">₩28,500,000</td><td></td></tr>
+        <tr><td>니코니코 VIDEO AD</td><td style="text-align:right">¥5,000,000</td><td style="text-align:right">₩47,500,000</td><td>오타쿠 핵심</td></tr>
+        <tr><td>WebCM</td><td>제작비 포함 (무대배우 출연)</td><td style="text-align:right">¥50,000,000</td><td style="text-align:right;font-weight:600;color:var(--c-dark)">₩475,000,000</td><td>오니 vs 모모타로 실사 CM</td></tr>
+        <tr><td>OOH</td><td>아키하바라·이케부쿠로역</td><td style="text-align:right">¥25,000,000</td><td style="text-align:right;font-weight:600;color:var(--c-dark)">₩237,500,000</td><td>현지 성지 접점</td></tr>
+        <tr><td>성우</td><td>라디오 시책 (우라·카미야·이와미)</td><td style="text-align:right">¥15,000,000</td><td style="text-align:right;font-weight:600;color:var(--c-dark)">₩142,500,000</td><td>주 1회 정기 방송</td></tr>
+        <tr class="total-row">
+          <td colspan="2">브랜딩 합계</td>
+          <td style="text-align:right">¥307,650,000</td>
+          <td style="text-align:right;font-size:15px;color:var(--c-dark)">₩2,922,675,000</td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="footnote">※ 환율: 100¥ = 950₩ (1¥ = 9.5₩) 적용 &nbsp;|&nbsp; Netflix는 협의 중으로 비용 미정 &nbsp;|&nbsp; Mirrativ는 출시 후 협의</div>
+  </div>
+</div>
+
+<!-- ===== 채널별 예산 ===== -->
+<div class="section" id="breakdown">
+  <div class="sec-title">채널별 예산 현황</div>
+  <div class="sec-desc">공통 채널 중복 현황 포함 | 카르타 UA는 2안 기준</div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title">채널별 배분 비교 (사전예약 기준)</div>
+    <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>채널</th>
+          <th style="text-align:right">모비데이즈 (KRW)</th>
+          <th style="text-align:right">카르타 UA (KRW)</th>
+          <th style="text-align:right">카르타 브랜딩 (KRW)</th>
+          <th>중복 여부</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Google Ads</td><td style="text-align:right">₩302,140,000</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td><span class="tag tag-ok">모비 단독</span></td></tr>
+        <tr><td>Apple Search Ads (ASA)</td><td style="text-align:right">₩131,100,000</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td><span class="tag tag-ok">모비 단독</span></td></tr>
+        <tr><td>Meta (MAIA)</td><td style="text-align:right">₩140,200,000</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td><span class="tag tag-ok">모비 단독</span></td></tr>
+        <tr><td>Moloco</td><td style="text-align:right">₩136,060,000</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td><span class="tag tag-ok">모비 단독</span></td></tr>
+        <tr style="background:#fff8f0"><td><strong>X (Twitter)</strong></td><td style="text-align:right">₩76,500,000</td><td style="text-align:right;font-weight:600">₩25,000,000</td><td style="text-align:right">₩50,000,000 (X 테이크오버)</td><td><span class="tag tag-warn">⚠ 3중 운영 중복</span></td></tr>
+        <tr style="background:#fff8f0"><td><strong>TikTok</strong></td><td style="text-align:right">₩53,520,000</td><td style="text-align:right;font-weight:600">₩10,000,000</td><td style="text-align:right">SNS운영(X+TikTok 합산)</td><td><span class="tag tag-warn">⚠ 중복 운영</span></td></tr>
+        <tr><td>SNS 운영 (X+TikTok 오가닉)</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td style="text-align:right">₩950,000,000</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>Zucks</td><td style="text-align:right">–</td><td style="text-align:right">₩6,000,000</td><td style="text-align:right">–</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>Unicorn</td><td style="text-align:right">–</td><td style="text-align:right">₩8,000,000</td><td style="text-align:right">–</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>LINE</td><td style="text-align:right">–</td><td style="text-align:right">₩2,000,000</td><td style="text-align:right">₩38,000,000</td><td><span class="tag tag-mid">카르타 UA+브랜딩 중복</span></td></tr>
+        <tr><td>Yahoo! Japan</td><td style="text-align:right">–</td><td style="text-align:right">₩2,000,000</td><td style="text-align:right">–</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>PORTO (TVer·FOD)</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td style="text-align:right">₩285,000,000</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>Abema</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td style="text-align:right">₩142,500,000</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>Pixiv</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td style="text-align:right">₩47,500,000</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>니코니코 동화</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td style="text-align:right">₩47,500,000</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>게임 매체 (4Gamer 등)</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td style="text-align:right">₩174,675,000</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>WebCM + OOH</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td style="text-align:right">₩712,500,000</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+        <tr><td>성우 라디오</td><td style="text-align:right">–</td><td style="text-align:right">–</td><td style="text-align:right">₩142,500,000</td><td><span class="tag tag-ok">카르타 단독</span></td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="alert alert-warn" style="margin-top:12px">
+      X(Twitter)의 경우 모비데이즈 UA (₩76.5M) + 카르타 UA (₩25M) + 카르타 브랜딩 테이크오버 (₩50M) = 3중 집행 가능성. 오디언스 세그먼트 분리 또는 담당 기간 분리 합의 필요.
+    </div>
+  </div>
+</div>
+
+<!-- ===== 주석·가정 ===== -->
+<div class="section" id="notes">
+  <div class="sec-title">주석 및 주요 가정</div>
+  <div class="sec-desc">데이터 출처, 추정치 근거, 유의사항</div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">데이터 출처</div>
+    <table>
+      <thead><tr><th>구분</th><th>출처 파일</th><th>내용</th></tr></thead>
+      <tbody>
+        <tr><td>모비데이즈 사전예약</td><td>컴투스_JP_도원암귀_26년_사전예약_론칭_Media_Mix_V2.xlsx<br>도원암귀JP_런칭_캠페인_퍼포먼스_제안.pdf</td><td>예산 ₩900M, CPR ₩4,239, 198,025건 (확정)</td></tr>
+        <tr><td>모비데이즈 론칭 예산</td><td>컴투스_공식_마일스톤_1차.png (미디어믹스 타임라인)</td><td>9/03~9/16 주간 예산 합산 ~₩1,600M (추정)</td></tr>
+        <tr><td>모비데이즈 인스톨 목표</td><td>컴투스_공식_마일스톤_1차.png</td><td>"론칭 NU 25만 모객" 텍스트 기반 추정 (250,000건)</td></tr>
+        <tr><td>카르타 UA SIM</td><td>카르타_미디어믹스_UA_SIM.xlsx</td><td>1안(₩5.5천만), 2안(₩1억400만), 추가제안(₩1억) 3가지 시나리오</td></tr>
+        <tr><td>카르타 브랜딩 예산</td><td>도원암귀_Carta_일본_마케팅_최종_제안서.pdf p.9</td><td>¥307,650,000 (JPY) 항목별 명세</td></tr>
+        <tr><td>환율</td><td>사용자 지정</td><td>100¥ = 950₩ (1¥ = 9.5₩) 고정 적용</td></tr>
+        <tr><td>공식 마일스톤</td><td>컴투스_공식_마일스톤_1차.png</td><td>CBT 7/30, 스팀 데모 7/30, 일본 선론칭 9/10~9/16</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-title">주요 가정 및 유의사항</div>
+    <table>
+      <thead><tr><th>번호</th><th>항목</th><th>가정/근거</th><th>신뢰도</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>모비데이즈 일정 시프트</td>
+          <td>원안 3~6월 → 공식 마일스톤 기준 7~9월로 시프트. 예산·CPR 수치는 원안 그대로 적용.</td>
+          <td><span class="tag tag-ok">확인됨</span></td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>모비데이즈 론칭 예산 ~₩1,600M</td>
+          <td>공식 마일스톤 이미지의 9/03~9/09(₩1,200M)·9/10~9/16(₩400M) 주간 예산 합산 추정치.</td>
+          <td><span class="tag tag-mid">추정</span></td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>모비데이즈 인스톨 목표 25만</td>
+          <td>미디어믹스 이미지 "론칭 NU 25만 모객" 텍스트 기반. 확정 KPI 별도 확인 필요.</td>
+          <td><span class="tag tag-mid">추정</span></td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>카르타 UA 기준: 2안 (₩1억400만)</td>
+          <td>모비데이즈와의 채널 중복을 최소화하는 일본 현지 버티컬 중심 플랜. 분석 기준으로 선택.</td>
+          <td><span class="tag tag-ok">시나리오 선택</span></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>카르타 CPR 계산</td>
+          <td>사전등록 DL유저수 × 전환율 0.75 = 스토어 등록자 수. 해당 수치를 CPR 분모로 사용.</td>
+          <td><span class="tag tag-ok">시뮬레이션 기준</span></td>
+        </tr>
+        <tr>
+          <td>6</td>
+          <td>카르타 CPI 상승 가능성</td>
+          <td>UA SIM 내 비고: "스토어 내 Install 버튼 부재로 CPI 20~30% 상승 가능성". 보수적 시나리오에서 CPI ₩2,000~2,100/건 예상.</td>
+          <td><span class="tag tag-warn">주의</span></td>
+        </tr>
+        <tr>
+          <td>7</td>
+          <td>대행사 수수료 미포함</td>
+          <td>모비데이즈 Net 수수료 9%, 카르타 별도 협의. 본 대시보드의 모든 예산은 매체비(Gross) 기준.</td>
+          <td><span class="tag tag-mid">별도 가산 필요</span></td>
+        </tr>
+        <tr>
+          <td>8</td>
+          <td>카르타 창작 용역</td>
+          <td>WebCM 제작비(¥50M 中 포함), 모비데이즈 배너 소재 무료 제작(~₩50M 상당) 등 인하우스 제작비 별도 산정.</td>
+          <td><span class="tag tag-mid">별도 산정</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">전체 예산 요약 (확정 vs. 추정 구분)</div>
+    <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>항목</th><th style="text-align:right">금액 (KRW)</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td>모비데이즈 사전예약 UA</td><td style="text-align:right">₩900,000,000</td><td><span class="tag tag-ok">확정</span></td></tr>
+        <tr><td>모비데이즈 론칭 UA</td><td style="text-align:right">~₩1,600,000,000</td><td><span class="tag tag-mid">추정</span></td></tr>
+        <tr><td>카르타 UA (2안)</td><td style="text-align:right">₩104,000,000</td><td><span class="tag tag-ok">시뮬레이션 확정</span></td></tr>
+        <tr><td>카르타 브랜딩</td><td style="text-align:right">₩2,922,675,000</td><td><span class="tag tag-ok">제안서 확정</span></td></tr>
+        <tr class="total-row"><td>전체 캠페인 총예산</td><td style="text-align:right;font-size:15px">~₩5,526,675,000</td><td><span class="tag tag-mid">부분 추정 포함</span></td></tr>
+        <tr style="background:#f8f6ee"><td style="font-size:12px;color:var(--muted)">모비데이즈 수수료 9% 추가 시</td><td style="text-align:right;font-size:12px;color:var(--muted)">+₩225,000,000</td><td></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- .content -->
+
+<!-- Footer -->
+<div style="background:var(--white);border-top:1px solid var(--border);padding:16px 32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;font-size:11px;color:var(--muted)">
+  <div>도원암귀 JP 대행사 비교 대시보드 &nbsp;|&nbsp; 2026.02 기준 &nbsp;|&nbsp; 환율: 100¥ = 950₩ &nbsp;|&nbsp; 카르타 UA 2안 기준</div>
+  <div>★추정 항목 포함 · 실제 캠페인 집행 전 대행사 확인 필요</div>
+</div>
+
+<script>
+document.querySelectorAll('.tab').forEach(function(t) {
+  t.addEventListener('click', function() {
+    var id = this.dataset.tab;
+    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
+    document.querySelectorAll('.section').forEach(function(x){ x.classList.remove('active'); });
+    this.classList.add('active');
+    document.getElementById(id).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>
