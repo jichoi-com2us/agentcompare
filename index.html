@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>도원암귀 JP 대행사 전략 대시보드</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif; background: #f5f4f0; color: #1a1a1a; font-size: 14px; line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  .db-header { padding: 1.5rem 0 1.25rem; border-bottom: 1px solid #e0ddd5; margin-bottom: 1.75rem; }
+  .db-title { font-size: 22px; font-weight: 600; color: #111; margin-bottom: 4px; }
+  .db-sub { font-size: 13px; color: #888; }
+
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 1.75rem; flex-wrap: wrap; }
+  .tab { padding: 7px 18px; font-size: 13px; border: 1px solid #ccc; border-radius: 6px; background: transparent; color: #666; cursor: pointer; transition: all .15s; }
+  .tab:hover { border-color: #999; color: #333; }
+  .tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .section-label { font-size: 11px; font-weight: 600; color: #aaa; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .75rem; }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .metric-card { background: #edecea; border-radius: 8px; padding: .875rem 1rem; }
+  .metric-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .metric-val { font-size: 20px; font-weight: 600; color: #111; }
+  .metric-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+  .card { background: #fff; border: 1px solid #e8e5de; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .card-title { font-size: 13px; font-weight: 600; color: #111; margin-bottom: 1rem; }
+
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 1.5rem; }
+  @media (max-width: 640px) { .compare-grid { grid-template-columns: 1fr; } }
+
+  .agency-card { background: #fff; border: 1px solid #e8e5de; border-radius: 12px; padding: 1.25rem; }
+  .agency-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px; margin-bottom: .875rem; }
+  .badge-mob { background: #ddeeff; color: #1a5fa0; }
+  .badge-carta { background: #dff0d8; color: #2d6a1e; }
+
+  .mix-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .mix-label { font-size: 11px; color: #666; min-width: 108px; }
+  .mix-bar-wrap { flex: 1; height: 6px; background: #edecea; border-radius: 3px; overflow: hidden; }
+  .mix-bar { height: 100%; border-radius: 3px; }
+  .mix-pct { font-size: 11px; font-weight: 600; color: #333; min-width: 36px; text-align: right; }
+  .mix-budget { font-size: 11px; color: #aaa; min-width: 56px; text-align: right; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th { color: #aaa; font-weight: 600; text-align: left; padding: 4px 8px 8px 0; border-bottom: 1px solid #eee; white-space: nowrap; }
+  tbody td { padding: 7px 8px 7px 0; border-bottom: 1px solid #f0ede7; color: #222; vertical-align: top; }
+  tbody td:first-child { color: #666; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.total-row td { font-weight: 600; color: #111; border-top: 1px solid #ddd; border-bottom: none; }
+
+  .target-block { background: #f7f6f2; border-radius: 8px; padding: .75rem 1rem; margin-bottom: 8px; }
+  .target-title { font-size: 12px; font-weight: 600; color: #222; margin-bottom: 3px; }
+  .target-body { font-size: 12px; color: #666; }
+
+  .chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { font-size: 11px; padding: 3px 10px; border-radius: 6px; border: 1px solid #ddd; color: #666; background: #f7f6f2; }
+  .chip.blue { background: #ddeeff; color: #1a5fa0; border-color: #a8cef0; }
+  .chip.green { background: #dff0d8; color: #2d6a1e; border-color: #a3d490; }
+  .chip.orange { background: #fff3e0; color: #b05a00; border-color: #f5c07a; }
+  .chip.red { background: #fde8e8; color: #a02020; border-color: #f0a0a0; }
+
+  .note { font-size: 11px; color: #aaa; margin-top: 6px; }
+  hr.divider { border: none; border-top: 1px solid #eee; margin: 1.25rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="db-header">
+    <p class="db-title">도원암귀 JP — 대행사 전략 비교 대시보드</p>
+    <p class="db-sub">5억원 플랜 기준 &nbsp;|&nbsp; Mobidays (사전예약) + Carta 2안 (사전예약 + 런칭) &nbsp;|&nbsp; GEO: JP</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="showTab('compare', this)">① 비교 개요</button>
+    <button class="tab" onclick="showTab('mobidays', this)">② Mobidays</button>
+    <button class="tab" onclick="showTab('carta', this)">③ Carta</button>
+  </div>
+
+  <!-- ① 비교 개요 -->
+  <div class="panel active" id="panel-compare">
+    <p class="section-label">사전예약 · 런칭 볼륨 및 목표 단가 비교</p>
+
+    <div class="compare-grid">
+      <div class="agency-card">
+        <span class="agency-badge badge-mob">Mobidays</span>
+        <div class="metric-grid" style="grid-template-columns:1fr 1fr; gap:8px; margin-bottom:.75rem;">
+          <div class="metric-card"><p class="metric-label">총 예산 (사전예약)</p><p class="metric-val">₩900M</p><p class="metric-sub">BR ₩60M + UA ₩840M</p></div>
+          <div class="metric-card"><p class="metric-label">목표 Pre-reg</p><p class="metric-val">198,000</p><p class="metric-sub">e.CPR ₩4,545</p></div>
+          <div class="metric-card"><p class="metric-label">AOS / iOS</p><p class="metric-val">36 / 64</p><p class="metric-sub">₩302M / ₩537M</p></div>
+          <div class="metric-card"><p class="metric-label">런칭 예산</p><p class="metric-val">TBD</p><p class="metric-sub">별도 플랜 미포함</p></div>
+        </div>
+        <p class="note">※ 사전예약 전용 플랜. 런칭 별도 미편성.</p>
+      </div>
+
+      <div class="agency-card">
+        <span class="agency-badge badge-carta">Carta (2안 · 5억원)</span>
+        <div class="metric-grid" style="grid-template-columns:1fr 1fr; gap:8px; margin-bottom:.75rem;">
+          <div class="metric-card"><p class="metric-label">사전예약 예산</p><p class="metric-val">₩300M</p><p class="metric-sub">6개 매체 AOS+iOS</p></div>
+          <div class="metric-card"><p class="metric-label">목표 Pre-reg</p><p class="metric-val">26,637</p><p class="metric-sub">e.CPR ₩11,264</p></div>
+          <div class="metric-card"><p class="metric-label">런칭 예산</p><p class="metric-val">₩200M</p><p class="metric-sub">5개 매체 AOS+iOS</p></div>
+          <div class="metric-card"><p class="metric-label">목표 설치 (런칭)</p><p class="metric-val">17,284</p><p class="metric-sub">e.CPI ₩11,572</p></div>
+        </div>
+        <p class="note">※ 사전예약 ₩300M + 런칭 ₩200M = 총 ₩500M</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">사전예약 미디어믹스 비교</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:28px;">
+        <div>
+          <p style="font-size:12px; font-weight:600; color:#888; margin-bottom:10px;">Mobidays — ₩900M</p>
+          <div class="mix-row"><span class="mix-label">Google ACp (AOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:33.6%;background:#378ADD;"></div></div><span class="mix-pct">33.6%</span><span class="mix-budget">₩302M</span></div>
+          <div class="mix-row"><span class="mix-label">Meta AAA-MAIA (iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:15.6%;background:#5DCAA5;"></div></div><span class="mix-pct">15.6%</span><span class="mix-budget">₩140M</span></div>
+          <div class="mix-row"><span class="mix-label">Moloco (iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:15.1%;background:#7F77DD;"></div></div><span class="mix-pct">15.1%</span><span class="mix-budget">₩136M</span></div>
+          <div class="mix-row"><span class="mix-label">X Install (iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:8.5%;background:#D85A30;"></div></div><span class="mix-pct">8.5%</span><span class="mix-budget">₩76.5M</span></div>
+          <div class="mix-row"><span class="mix-label">ASA 3종 (iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:14.6%;background:#EF9F27;"></div></div><span class="mix-pct">14.6%</span><span class="mix-budget">₩131M</span></div>
+          <div class="mix-row"><span class="mix-label">TikTok (iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:5.9%;background:#888780;"></div></div><span class="mix-pct">5.9%</span><span class="mix-budget">₩53.5M</span></div>
+          <div class="mix-row"><span class="mix-label">BR (Google+X)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:6.7%;background:#B4B2A9;"></div></div><span class="mix-pct">6.7%</span><span class="mix-budget">₩60.5M</span></div>
+        </div>
+        <div>
+          <p style="font-size:12px; font-weight:600; color:#888; margin-bottom:10px;">Carta — ₩286M (사전예약 NU-pre)</p>
+          <div class="mix-row"><span class="mix-label">TikTok (AOS+iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:28.3%;background:#378ADD;"></div></div><span class="mix-pct">28.3%</span><span class="mix-budget">₩81M</span></div>
+          <div class="mix-row"><span class="mix-label">X (AOS+iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:26.2%;background:#D85A30;"></div></div><span class="mix-pct">26.2%</span><span class="mix-budget">₩75M</span></div>
+          <div class="mix-row"><span class="mix-label">Zucks (AOS+iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:20.8%;background:#5DCAA5;"></div></div><span class="mix-pct">20.8%</span><span class="mix-budget">₩59.4M</span></div>
+          <div class="mix-row"><span class="mix-label">Unicorn (AOS+iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:18.3%;background:#7F77DD;"></div></div><span class="mix-pct">18.3%</span><span class="mix-budget">₩52.2M</span></div>
+          <div class="mix-row"><span class="mix-label">LINE (iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:5.7%;background:#EF9F27;"></div></div><span class="mix-pct">5.7%</span><span class="mix-budget">₩16.2M</span></div>
+          <div class="mix-row"><span class="mix-label">YDA (iOS)</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:5.7%;background:#888780;"></div></div><span class="mix-pct">5.7%</span><span class="mix-budget">₩16.2M</span></div>
+          <div class="mix-row"><span class="mix-label">BR · Meta Reel</span><div class="mix-bar-wrap"><div class="mix-bar" style="width:55%;background:#F0997B;"></div></div><span class="mix-pct">BR별도</span><span class="mix-budget">₩157.6M</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">핵심 KPI 비교</p>
+      <table>
+        <thead><tr><th>지표</th><th>Mobidays</th><th>Carta 2안</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td>사전예약 예산</td><td>₩900M</td><td>₩300M</td><td>—</td></tr>
+          <tr><td>목표 Pre-reg</td><td>198,000건</td><td>26,637건</td><td>—</td></tr>
+          <tr><td>e.CPR</td><td>₩4,545</td><td>₩11,264</td><td>Mobidays 효율 우세</td></tr>
+          <tr><td>AOS 비중</td><td>36% (₩302M)</td><td>~50% (₩150M)</td><td>—</td></tr>
+          <tr><td>iOS 비중</td><td>64% (₩537M)</td><td>~50% (₩150M)</td><td>—</td></tr>
+          <tr><td>런칭 예산</td><td>TBD</td><td>₩200M</td><td>—</td></tr>
+          <tr><td>목표 설치 (런칭)</td><td>TBD</td><td>17,284건</td><td>—</td></tr>
+          <tr><td>e.CPI (런칭)</td><td>TBD</td><td>₩11,572</td><td>—</td></tr>
+          <tr><td>주요 매체</td><td>Google·Meta·ASA·Moloco·X·TikTok</td><td>X·TikTok·Zucks·Unicorn·LINE·YDA</td><td>중복: X·TikTok</td></tr>
+          <tr><td>BR 매체</td><td>Google VVC + X ARROW/View</td><td>Meta Reel Trending Ads</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="card-title">타겟 전략 비교</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div>
+          <p style="font-size:12px; font-weight:600; color:#1a5fa0; margin-bottom:10px;">Mobidays</p>
+          <div class="target-block">
+            <p class="target-title">T1 — IP 팬덤 타겟</p>
+            <p class="target-body">원작 도원암귀 팬, 애니메이션 시청자 — 공식성·원작 재현 소구</p>
+          </div>
+          <div class="target-block">
+            <p class="target-title">T2 — Anime IP 게이머 타겟</p>
+            <p class="target-body">서브컬처·RPG 장르 관심 유저 — 캐릭터 애착·수집 욕구 소구</p>
+          </div>
+          <div class="target-block">
+            <p class="target-title">LT — LTV 중심 오디언스 전략</p>
+            <p class="target-body">초기 광범위 모수 확보 → 중반 고가치 유저 집중 + 구매 최적화 캠페인</p>
+          </div>
+          <div class="chip-row">
+            <span class="chip blue">M1844 Anime IP</span>
+            <span class="chip blue">iOS 64% 집중</span>
+            <span class="chip">Broad → Core</span>
+          </div>
+        </div>
+        <div>
+          <p style="font-size:12px; font-weight:600; color:#2d6a1e; margin-bottom:10px;">Carta</p>
+          <div class="target-block">
+            <p class="target-title">T1 — Tier1 코어 · 캐릭터 팬</p>
+            <p class="target-body">캐릭터를 좋아하는 코어 게이머 — HDKW 키워드 타겟팅 선집행</p>
+          </div>
+          <div class="target-block">
+            <p class="target-title">T2 — Tier1 코어 · 게임성 유저</p>
+            <p class="target-body">게임성 중심 RPG 유저 — X 특유 텍스트 표현 + TikTok 페이스별 분리</p>
+          </div>
+          <div class="target-block">
+            <p class="target-title">T3 — Tier2 오타쿠 시장</p>
+            <p class="target-body">HDKW 코어 설정 → 라이트층으로 단계적 확대, 애니메이션 팬층 리치</p>
+          </div>
+          <div class="chip-row">
+            <span class="chip green">HDKW 코어팬</span>
+            <span class="chip green">iOS 60~70%</span>
+            <span class="chip">Core → Light</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">소재 전략 비교</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+        <div>
+          <p style="font-size:12px; font-weight:600; color:#1a5fa0; margin-bottom:10px;">Mobidays</p>
+          <div class="target-block"><p class="target-title">① 공식성 강조</p><p class="target-body">TV 최초 공식 라이선스 게임 카피, 원작 로고 전면 배치 — IP 도용 게임과 차별화</p></div>
+          <div class="target-block"><p class="target-title">② 비주얼 훅</p><p class="target-body">하이엔드 아트웍 + 혈식해방 전투 연출로 시각적 임팩트</p></div>
+          <div class="target-block"><p class="target-title">③ 스토리 기대감 + 대세감</p><p class="target-body">사전예약 수치 활용 대작 이미지 각인, 2Q 신규 캐릭터 티징</p></div>
+          <div class="target-block"><p class="target-title">④ 5개 광고세트 분리 운영</p><p class="target-body">캐릭터 / 인게임 / PV / 쿠폰 / 이벤트 — USP 단위 성과 측정</p></div>
+        </div>
+        <div>
+          <p style="font-size:12px; font-weight:600; color:#2d6a1e; margin-bottom:10px;">Carta</p>
+          <div class="target-block"><p class="target-title">① 애니메이션 오리지널 요소 (1st 소구)</p><p class="target-body">성우 오리지널 보이스 · 원작 스토리 · 원작 캐릭터 재현성 — 오타쿠 RPG 유저</p></div>
+          <div class="target-block"><p class="target-title">② 게임성 강조 (1st 소구)</p><p class="target-body">화려한 스킬씬 · 게임 시스템 · 인기 캐릭터 어필 — 턴제 RPG 유저 공략</p></div>
+          <div class="target-block"><p class="target-title">③ 화제성 + 인센티브 (2nd~3rd 소구)</p><p class="target-body">「화제작이 드디어 게임으로!」 드림팀 화제성 → 무료 연속 가챠 등 인센티브</p></div>
+          <div class="target-block"><p class="target-title">④ 다양한 CR 라이브 PDCA</p><p class="target-body">매체별 소구축 검증 → 효율 좋은 방향으로 CR 확대, 카운트다운 소재 활용</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② Mobidays -->
+  <div class="panel" id="panel-mobidays">
+    <p class="section-label">Mobidays 전략 요약 — 사전예약 ₩900M</p>
+    <div class="metric-grid">
+      <div class="metric-card"><p class="metric-label">총 예산</p><p class="metric-val">₩900M</p><p class="metric-sub">사전예약 전용</p></div>
+      <div class="metric-card"><p class="metric-label">BR 예산</p><p class="metric-val">₩60.5M</p><p class="metric-sub">비중 6.7%</p></div>
+      <div class="metric-card"><p class="metric-label">NU-pre AOS</p><p class="metric-val">₩302M</p><p class="metric-sub">Google ACp 단일</p></div>
+      <div class="metric-card"><p class="metric-label">NU-pre iOS</p><p class="metric-val">₩537M</p><p class="metric-sub">6개 매체</p></div>
+      <div class="metric-card"><p class="metric-label">목표 Pre-reg</p><p class="metric-val">198,000</p><p class="metric-sub">누적 사전예약</p></div>
+      <div class="metric-card"><p class="metric-label">e.CPR</p><p class="metric-val">₩4,545</p><p class="metric-sub">전체 평균</p></div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">BR (브랜딩) — ₩60.5M &nbsp;·&nbsp; 2026-05-14 ~ 06-17</p>
+      <table>
+        <thead><tr><th>OS</th><th>매체 / 상품</th><th>예산</th><th>비중</th><th>IMP</th><th>VTR</th><th>CPM</th><th>CPC</th></tr></thead>
+        <tbody>
+          <tr><td>AOS</td><td>Google Ads VVC</td><td>₩16.8M</td><td>27.8%</td><td>2,852,292</td><td>31.0%</td><td>₩5,890</td><td>₩2,356</td></tr>
+          <tr><td>iOS</td><td>Google Ads VVC</td><td>₩16.8M</td><td>27.8%</td><td>3,294,118</td><td>34.0%</td><td>₩5,100</td><td>₩6,375</td></tr>
+          <tr><td>ALL</td><td>X ARROW</td><td>₩18.8M</td><td>31.1%</td><td>6,513,790</td><td>1.25%</td><td>₩2,891</td><td>₩41</td></tr>
+          <tr><td>ALL</td><td>X View</td><td>₩8.1M</td><td>13.3%</td><td>5,366,667</td><td>30.0%</td><td>₩1,500</td><td>₩789</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="card-title">NU-pre AOS — ₩302M &nbsp;·&nbsp; 2026-03-16 ~ 06-17 (94일)</p>
+      <table>
+        <thead><tr><th>매체 / 상품</th><th>예산</th><th>비중</th><th>Pre-reg</th><th>CPR</th><th>IMP</th><th>CTR</th><th>CVR</th></tr></thead>
+        <tbody>
+          <tr><td>Google Ads ACp</td><td>₩302M</td><td>100%</td><td>147,746</td><td>₩2,045</td><td>89,343,058</td><td>2.77%</td><td>5.97%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="card-title">NU-pre iOS — ₩537M &nbsp;·&nbsp; 2026-03-16 ~ 06-17 (94일)</p>
+      <table>
+        <thead><tr><th>매체 / 상품</th><th>예산</th><th>비중</th><th>Pre-reg</th><th>CPR</th><th>CTR</th><th>CVR</th></tr></thead>
+        <tbody>
+          <tr><td>ASA SearchResult</td><td>₩57.9M</td><td>10.8%</td><td>2,517</td><td>₩23,000</td><td>1.43%</td><td>4.60%</td></tr>
+          <tr><td>ASA TodayTab</td><td>₩36.6M</td><td>6.8%</td><td>2,033</td><td>₩18,000</td><td>1.80%</td><td>11.50%</td></tr>
+          <tr><td>ASA SearchTab</td><td>₩36.6M</td><td>6.8%</td><td>1,664</td><td>₩22,000</td><td>1.61%</td><td>6.59%</td></tr>
+          <tr><td>Meta AAA-MAIA</td><td>₩140.2M</td><td>26.1%</td><td>16,302</td><td>₩8,600</td><td>1.21%</td><td>13.25%</td></tr>
+          <tr><td>TikTok Install</td><td>₩53.5M</td><td>10.0%</td><td>5,325</td><td>₩10,050</td><td>0.92%</td><td>10.07%</td></tr>
+          <tr><td>X Install</td><td>₩76.5M</td><td>14.2%</td><td>7,150</td><td>₩10,700</td><td>0.20%</td><td>2.80%</td></tr>
+          <tr><td>Moloco Install</td><td>₩136.1M</td><td>25.3%</td><td>15,288</td><td>₩8,900</td><td>3.43%</td><td>3.20%</td></tr>
+          <tr class="total-row"><td>합계</td><td>₩537M</td><td>100%</td><td>50,279</td><td>—</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="card-title">타겟 전략</p>
+      <div class="target-block"><p class="target-title">T1 — IP 팬덤 타겟</p><p class="target-body">원작 도원암귀 팬, 애니메이션 시청자 — 공식성·원작 재현 소구</p></div>
+      <div class="target-block"><p class="target-title">T2 — Anime IP 게이머 타겟</p><p class="target-body">서브컬처·RPG 장르 관심 유저 — 캐릭터 애착·수집 욕구 소구</p></div>
+      <div class="target-block"><p class="target-title">LT — LTV 중심 오디언스 전략</p><p class="target-body">초기 광범위 모수 확보 → 중반 고가치 유저 집중 + 구매 최적화 캠페인</p></div>
+      <div class="chip-row">
+        <span class="chip blue">M1844 Anime IP</span>
+        <span class="chip blue">iOS 64% 집중</span>
+        <span class="chip">AOS 36%</span>
+        <span class="chip">Broad → Core</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">소재 전략</p>
+      <div class="target-block"><p class="target-title">① 공식성 강조</p><p class="target-body">TV 최초 공식 라이선스 게임 카피, 원작 로고 전면 배치 — IP 도용 게임과 차별화</p></div>
+      <div class="target-block"><p class="target-title">② 비주얼 훅</p><p class="target-body">하이엔드 아트웍 + 혈식해방 전투 연출로 시각적 임팩트</p></div>
+      <div class="target-block"><p class="target-title">③ 스토리 기대감 + 대세감</p><p class="target-body">사전예약 수치 활용 대작 이미지 각인, 2Q 신규 캐릭터 티징으로 궁금증 유발</p></div>
+      <div class="target-block"><p class="target-title">④ 5개 광고세트 분리 운영</p><p class="target-body">캐릭터 강조 / 인게임 플레이 / PV 컨셉 / 쿠폰 / 이벤트 — USP 단위 성과 측정</p></div>
+    </div>
+  </div>
+
+  <!-- ③ Carta -->
+  <div class="panel" id="panel-carta">
+    <p class="section-label">Carta 전략 요약 — 5억원 2안 (사전예약 + 런칭)</p>
+    <div class="metric-grid">
+      <div class="metric-card"><p class="metric-label">사전예약 예산</p><p class="metric-val">₩300M</p><p class="metric-sub">6개 매체 AOS+iOS</p></div>
+      <div class="metric-card"><p class="metric-label">목표 Pre-reg</p><p class="metric-val">26,637</p><p class="metric-sub">e.CPR ₩11,264</p></div>
+      <div class="metric-card"><p class="metric-label">런칭 예산</p><p class="metric-val">₩200M</p><p class="metric-sub">5개 매체 AOS+iOS</p></div>
+      <div class="metric-card"><p class="metric-label">목표 설치</p><p class="metric-val">17,284</p><p class="metric-sub">e.CPI ₩11,572</p></div>
+      <div class="metric-card"><p class="metric-label">BR 예산</p><p class="metric-val">₩157.6M</p><p class="metric-sub">Meta Reel Trending</p></div>
+      <div class="metric-card"><p class="metric-label">총 합계</p><p class="metric-val">₩500M</p><p class="metric-sub">Pre ₩300M + Launch ₩200M</p></div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">BR (브랜딩) — ₩157.6M &nbsp;·&nbsp; 2026-09-10 ~ 09-30</p>
+      <table>
+        <thead><tr><th>OS</th><th>매체 / 상품</th><th>예산</th><th>비고</th></tr></thead>
+        <tbody>
+          <tr><td>ALL</td><td>Meta Reel Trending Ads</td><td>₩157.6M</td><td>브랜딩 전용, Conv. 지표 미산출</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="card-title">NU-pre (사전예약) — ₩300M &nbsp;·&nbsp; 2026-08-01 ~ 09-30</p>
+      <table>
+        <thead><tr><th>OS</th><th>매체</th><th>예산</th><th>비중</th><th>Pre-reg</th><th>CPR</th><th>CTR</th><th>CVR</th></tr></thead>
+        <tbody>
+          <tr><td>AOS</td><td>X (Twitter)</td><td>₩31.5M</td><td>10.5%</td><td>3,747</td><td>₩8,406</td><td>4.50%</td><td>4.00%</td></tr>
+          <tr><td>AOS</td><td>TikTok</td><td>₩37.8M</td><td>12.6%</td><td>3,162</td><td>₩11,956</td><td>2.50%</td><td>2.90%</td></tr>
+          <tr><td>AOS</td><td>Zucks</td><td>₩28.3M</td><td>9.4%</td><td>2,372</td><td>₩11,936</td><td>0.30%</td><td>0.40%</td></tr>
+          <tr><td>AOS</td><td>Unicorn</td><td>₩28.3M</td><td>9.4%</td><td>2,492</td><td>₩11,359</td><td>11.00%</td><td>0.37%</td></tr>
+          <tr><td>iOS</td><td>X (Twitter)</td><td>₩47.2M</td><td>15.7%</td><td>4,633</td><td>₩10,188</td><td>4.50%</td><td>3.30%</td></tr>
+          <tr><td>iOS</td><td>TikTok</td><td>₩47.2M</td><td>15.7%</td><td>3,949</td><td>₩11,955</td><td>2.50%</td><td>2.90%</td></tr>
+          <tr><td>iOS</td><td>Zucks</td><td>₩34.0M</td><td>11.3%</td><td>2,849</td><td>₩11,938</td><td>0.30%</td><td>0.40%</td></tr>
+          <tr><td>iOS</td><td>Unicorn</td><td>₩26.4M</td><td>8.8%</td><td>2,327</td><td>₩11,356</td><td>11.00%</td><td>0.37%</td></tr>
+          <tr><td>iOS</td><td>LINE</td><td>₩17.0M</td><td>5.7%</td><td>1,160</td><td>₩14,661</td><td>1.70%</td><td>2.10%</td></tr>
+          <tr><td>iOS</td><td>YDA</td><td>₩17.0M</td><td>5.7%</td><td>2,451</td><td>₩6,935</td><td>2.00%</td><td>2.30%</td></tr>
+          <tr class="total-row"><td colspan="2">합계</td><td>₩300M</td><td>100%</td><td>26,637 (est.)</td><td>₩11,264</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="card-title">NU (런칭) — ₩200M &nbsp;·&nbsp; 2026-10-01 ~ 10-14 (14일)</p>
+      <table>
+        <thead><tr><th>OS</th><th>매체</th><th>예산</th><th>비중</th><th>Install</th><th>CPI</th><th>CTR</th><th>CVR</th></tr></thead>
+        <tbody>
+          <tr><td>AOS</td><td>X (Twitter)</td><td>₩22.2M</td><td>11.1%</td><td>1,851</td><td>₩12,005</td><td>4.50%</td><td>2.80%</td></tr>
+          <tr><td>AOS</td><td>TikTok</td><td>₩33.4M</td><td>16.7%</td><td>2,890</td><td>₩11,556</td><td>2.50%</td><td>3.00%</td></tr>
+          <tr><td>AOS</td><td>Zucks</td><td>₩22.2M</td><td>11.1%</td><td>1,861</td><td>₩11,940</td><td>0.30%</td><td>0.40%</td></tr>
+          <tr><td>AOS</td><td>Unicorn</td><td>₩22.2M</td><td>11.1%</td><td>1,957</td><td>₩11,357</td><td>11.00%</td><td>0.37%</td></tr>
+          <tr><td>AOS</td><td>LINE</td><td>₩11.1M</td><td>5.6%</td><td>694</td><td>₩16,000</td><td>1.70%</td><td>2.10%</td></tr>
+          <tr><td>iOS</td><td>X (Twitter)</td><td>₩22.2M</td><td>11.1%</td><td>1,851</td><td>₩12,005</td><td>4.50%</td><td>2.80%</td></tr>
+          <tr><td>iOS</td><td>TikTok</td><td>₩33.4M</td><td>16.7%</td><td>2,890</td><td>₩11,556</td><td>2.50%</td><td>3.00%</td></tr>
+          <tr><td>iOS</td><td>Zucks</td><td>₩22.2M</td><td>11.1%</td><td>1,861</td><td>₩11,940</td><td>0.30%</td><td>0.40%</td></tr>
+          <tr><td>iOS</td><td>Unicorn</td><td>₩22.2M</td><td>11.1%</td><td>1,957</td><td>₩11,357</td><td>11.00%</td><td>0.37%</td></tr>
+          <tr><td>iOS</td><td>LINE</td><td>₩11.1M</td><td>5.6%</td><td>694</td><td>₩16,000</td><td>1.70%</td><td>2.10%</td></tr>
+          <tr class="total-row"><td colspan="2">합계</td><td>₩200M</td><td>100%</td><td>17,284 (est.)</td><td>₩11,572</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <p class="card-title">타겟 전략</p>
+      <div class="target-block"><p class="target-title">T1 — Tier1 코어 · 캐릭터 팬</p><p class="target-body">캐릭터를 좋아하는 코어 게이머 — HDKW 키워드 타겟팅 선집행</p></div>
+      <div class="target-block"><p class="target-title">T2 — Tier1 코어 · 게임성 유저</p><p class="target-body">게임성 중심 RPG 유저 — X 특유 텍스트 표현 + TikTok 페이스별 분리</p></div>
+      <div class="target-block"><p class="target-title">T3 — Tier2 오타쿠 시장</p><p class="target-body">HDKW 코어 설정 → 라이트층으로 단계적 확대, 애니메이션 팬층 리치</p></div>
+      <div class="chip-row">
+        <span class="chip green">HDKW 코어팬</span>
+        <span class="chip green">iOS 60~70%</span>
+        <span class="chip">AEO 최적화</span>
+        <span class="chip">Core → Light</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">소재 전략</p>
+      <div class="target-block"><p class="target-title">① 애니메이션 오리지널 요소 (1st 소구)</p><p class="target-body">성우 오리지널 보이스 · 원작 스토리 · 원작 캐릭터 재현성 — 오타쿠 RPG 유저</p></div>
+      <div class="target-block"><p class="target-title">② 게임성 강조 (1st 소구)</p><p class="target-body">화려한 스킬씬 · 게임 시스템 · 인기 캐릭터 어필 — 턴제 RPG 유저 공략</p></div>
+      <div class="target-block"><p class="target-title">③ 화제성 + 인센티브 (2nd~3rd 소구)</p><p class="target-body">「화제작이 드디어 게임으로!」 드림팀 화제성 → 무료 연속 가챠 등 인센티브</p></div>
+      <div class="target-block"><p class="target-title">④ 다양한 CR 라이브 PDCA</p><p class="target-body">매체별 소구축 검증 → 효율 좋은 방향으로 CR 확대, 카운트다운 소재 활용</p></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+</script>
+</body>
+</html>
